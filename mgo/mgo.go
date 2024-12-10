@@ -2,7 +2,6 @@ package mgo
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"time"
 
@@ -19,21 +18,17 @@ func InitMongoDB() {
 
 	uri := "mongodb://localhost:27017"
 
-	fmt.Println("heelo")
-
 	// MongoDB client options
 	clientOptions := options.Client().ApplyURI(uri)
 
-	fmt.Println("Connecting to MongoDB")
+	log.Println("Connecting to MongoDB")
 
-	// Connect to MongoDB
 	client, err := mongo.Connect(context.Background(), clientOptions)
 	if err != nil {
 		log.Fatalf("Failed to connect to MongoDB: %v", err)
 	}
 
-	fmt.Println("Connected to MongoDB")
-	// Check connection
+	log.Println("Connected to MongoDB")
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -44,5 +39,4 @@ func InitMongoDB() {
 	Client = client
 	Users = client.Database("go-apis").Collection("users")
 	log.Println("MongoDB connection established")
-	fmt.Println("MongoDB connection established")
 }

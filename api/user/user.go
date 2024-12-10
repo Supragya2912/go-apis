@@ -1,6 +1,7 @@
 package user
 
 import (
+	"fmt"
 	"go-apis/helpers"
 	"net/http"
 
@@ -33,13 +34,30 @@ func Create(c echo.Context) error {
 		)
 	}
 
+	existingUserReq := &ExistingUserRequest{
+		Email: req.Email,
+	}
+	exists, err := dmgo.ExistingUser(existingUserReq)
+	fmt.Println(err, exists)
+
+	if exists {
+		return c.JSON(
+			http.StatusUnauthorized,
+			helpers.ErrResponse(
+				http.StatusUnauthorized,
+				"Email Exists",
+				"USER_EXISTS",
+			),
+		)
+	}
+
 	user, err := dmgo.CreateUserRequest(req)
 	if err != nil {
 		return c.JSON(
 			http.StatusInternalServerError,
 			helpers.ErrResponse(
 				http.StatusInternalServerError,
-				err.Error(),
+				"Failed to create user",
 				"CREATE_USER_ERROR",
 			),
 		)

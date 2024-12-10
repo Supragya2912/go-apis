@@ -3,6 +3,7 @@ package user
 import (
 	"context"
 	"go-apis/mgo"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -40,4 +41,20 @@ func (m DefaultMongo) CreateUserRequest(data *CreateUserRequest) (*CreateUserRes
 	}
 
 	return &createdUser, nil
+}
+
+func (d *DefaultMongo) ExistingUser(data *ExistingUserRequest) (bool, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var user User
+	err := mgo.Users.FindOne(ctx, bson.M{"email": data.Email}).Decode(&user)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return false, nil
+		}
+		return false, err
+	}
+
+	return true, nil
 }
