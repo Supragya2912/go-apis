@@ -47,7 +47,7 @@ func (d *DefaultMongo) ExistingUser(data *ExistingUserRequest) (bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	var user User
+	var user CreateUserRequest
 	err := mgo.Users.FindOne(ctx, bson.M{"email": data.Email}).Decode(&user)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {

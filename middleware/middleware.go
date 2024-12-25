@@ -3,6 +3,8 @@ package middleware
 import (
 	"context"
 	"errors"
+	"fmt"
+	"go-apis/api/user"
 	"go-apis/helpers"
 	"go-apis/mgo"
 	"net/http"
@@ -10,12 +12,22 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo/v4"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type jwtClaims struct {
-	UserID string `json:"_id"`
+	UserID string `json:"_id" bson:"_id"`
 	jwt.StandardClaims
+}
+
+type User struct {
+	ObjectID  primitive.ObjectID `bson:"_id"`
+	Email     string             `bson:"email"`
+	Mobile    string             `bson:"phone"`
+	FirstName string             `bson:"firstName"`
+	LastName  string             `bson:"lastName"`
 }
 
 func Protect(next echo.HandlerFunc) echo.HandlerFunc {
@@ -39,10 +51,13 @@ func Protect(next echo.HandlerFunc) echo.HandlerFunc {
 				"INVALID_ACCESS_TOKEN",
 			))
 		}
-		user := mgo.Users.FindOne(context.Background(), claims.UserID)
 
-		if user.Err() != nil {
-			if user.Err() == mongo.ErrNoDocuments {
+		filter := bson.M{"email": claims.Subject}
+
+		var user user.CreateUserRequest
+		err = mgo.Users.FindOne(context.Background(), filter).Decode(&user)
+		if err != nil {
+			if err == mongo.ErrNoDocuments {
 				return c.JSON(http.StatusUnauthorized, helpers.ErrResponse(
 					http.StatusUnauthorized,
 					"User not found",
@@ -55,6 +70,7 @@ func Protect(next echo.HandlerFunc) echo.HandlerFunc {
 				"FETCH_USER_ERROR",
 			))
 		}
+
 		c.Set("user", user)
 
 		return next(c)
@@ -62,13 +78,23 @@ func Protect(next echo.HandlerFunc) echo.HandlerFunc {
 }
 
 func verifyToken(tokenString string) (*jwtClaims, error) {
+	fmt.Println("Received Token:", tokenString)
 
 	claims := &jwtClaims{}
 	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
 		return []byte("secret"), nil
 	})
-	if err != nil || !token.Valid {
+
+	if err != nil {
 		return nil, errors.New("invalid token")
 	}
+
+	if !token.Valid {
+		return nil, errors.New("invalid token")
+	}
+
 	return claims, nil
 }

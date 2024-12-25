@@ -3,6 +3,8 @@ package auth
 import (
 	"context"
 	"errors"
+	"fmt"
+	"go-apis/api/user"
 	"go-apis/helpers"
 	"go-apis/mgo"
 	"time"
@@ -12,14 +14,9 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type User struct {
-	Email    string `bson:"email"`
-	Password string `bson:"password"`
-	// Add more fields as needed
-}
-
 type Mongo interface {
 	LoginUser(data *LoginRequest) (*LoginResponse, error)
+	UpdatePassword(data *UpdatePasswordRequest) error
 }
 
 type DefaultMongo struct{}
@@ -30,7 +27,7 @@ func (d *DefaultMongo) LoginUser(data *LoginRequest) (*LoginResponse, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	var user User
+	var user user.CreateUserRequest
 	err := mgo.Users.FindOne(ctx, bson.M{"email": data.Email}).Decode(&user)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
@@ -54,4 +51,35 @@ func (d *DefaultMongo) LoginUser(data *LoginRequest) (*LoginResponse, error) {
 	return &LoginResponse{
 		Token: token,
 	}, nil
+}
+
+func (d *DefaultMongo) UpdatePassword(data *UpdatePasswordRequest) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var user user.CreateUserRequest
+	fmt.Println("Email:", data.Email)
+	err := mgo.Users.FindOne(ctx, bson.M{"email": data.Email}).Decode(&user)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return errors.New("user not found")
+		}
+		return err
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(data.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
+	_, err = mgo.Users.UpdateOne(
+		ctx,
+		bson.M{"email": data.Email},
+		bson.M{"$set": bson.M{"password": string(hashedPassword)}},
+	)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

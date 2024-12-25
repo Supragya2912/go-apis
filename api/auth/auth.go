@@ -51,3 +51,48 @@ func Login(c echo.Context) error {
 		helpers.SuccessResponse(token),
 	)
 }
+
+func UpdatePassword(c echo.Context) error {
+	fmt.Println("Update Password Request Received")
+	req :=
+		new(UpdatePasswordRequest)
+	if err := c.Bind(req); err != nil {
+		return c.JSON(
+			http.StatusInternalServerError,
+			helpers.ErrResponse(
+				http.StatusInternalServerError,
+				"Failed to bind request",
+				"BIND_ERROR",
+			),
+		)
+	}
+
+	if req.Email == "" || req.NewPassword == "" || req.OldPassword == "" {
+		return c.JSON(
+			http.StatusBadRequest,
+			helpers.ErrResponse(
+				http.StatusBadRequest,
+				"Missing required fields",
+				"MISSING_FIELDS",
+			),
+		)
+	}
+
+	err := dmgo.UpdatePassword(req)
+	if err != nil {
+		return c.JSON(
+			http.StatusInternalServerError,
+			helpers.ErrResponse(
+				http.StatusInternalServerError,
+				err.Error(),
+				"UPDATE_PASSWORD_ERROR",
+			),
+		)
+	}
+
+	return c.JSON(
+		http.StatusOK,
+		helpers.SuccessResponse("Password updated successfully"),
+	)
+
+}

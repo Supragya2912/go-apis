@@ -4,14 +4,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-type User struct {
-	ObjectID  primitive.ObjectID `bson:"_id"`
-	Email     string             `bson:"email"`
-	Mobile    string             `bson:"phone"`
-	FirstName string             `bson:"firstName"`
-	LastName  string             `bson:"lastName"`
-}
-
 type CreateUserResponse struct {
 	ID        primitive.ObjectID `json:"id" bson:"_id"`
 	Email     string             `json:"email"`
