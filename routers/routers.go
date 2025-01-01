@@ -15,4 +15,5 @@ func MountRoutes(e *echo.Echo) {
 	protected := e.Group("/api")
 	protected.Use(middleware.Protect)
 	protected.POST("/update-password", auth.UpdatePassword)
+	protected.POST("/get-user", user.GetUser)
 }

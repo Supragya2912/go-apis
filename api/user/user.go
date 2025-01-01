@@ -1,11 +1,17 @@
 package user
 
 import (
+	"context"
 	"fmt"
+
 	"go-apis/helpers"
+	"go-apis/mgo"
 	"net/http"
+	"strings"
 
 	"github.com/labstack/echo/v4"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 func Create(c echo.Context) error {
@@ -51,6 +57,7 @@ func Create(c echo.Context) error {
 		)
 	}
 
+	req.Role = "user"
 	user, err := dmgo.CreateUserRequest(req)
 	if err != nil {
 		return c.JSON(
@@ -67,4 +74,57 @@ func Create(c echo.Context) error {
 		http.StatusOK,
 		helpers.SuccessResponse(user),
 	)
+}
+
+func GetUser(c echo.Context) error {
+
+	authHeader := c.Request().Header.Get("Authorization")
+	if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
+		return c.JSON(http.StatusUnauthorized, helpers.ErrResponse(
+			http.StatusUnauthorized,
+			"Authorization header is required",
+			"AUTH_HEADER_MISSING",
+		))
+	}
+	tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+	claims, err := helpers.VerifyToken(tokenString)
+	if err != nil {
+		return c.JSON(http.StatusUnauthorized, helpers.ErrResponse(
+			http.StatusUnauthorized,
+			"Invalid access token",
+			"INVALID_ACCESS_TOKEN",
+		))
+	}
+
+	filter := bson.M{"email": claims.Subject}
+
+	var user CreateUserRequest
+	err = mgo.Users.FindOne(context.Background(), filter).Decode(&user)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return c.JSON(http.StatusUnauthorized, helpers.ErrResponse(
+				http.StatusUnauthorized,
+				"User not found",
+				"USER_NOT_FOUND",
+			))
+		}
+		return c.JSON(http.StatusInternalServerError, helpers.ErrResponse(
+			http.StatusInternalServerError,
+			"Failed to fetch user",
+			"FETCH_USER_ERROR",
+		))
+	}
+
+	userResponse := GetUserResponse{
+		Email:     user.Email,
+		FirstName: user.FirstName,
+		LastName:  user.LastName,
+		Phone:     user.Mobile,
+		Role:      user.Role,
+	}
+	return c.JSON(
+		http.StatusOK,
+		helpers.SuccessResponse(userResponse),
+	)
+
 }

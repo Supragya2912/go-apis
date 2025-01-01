@@ -18,6 +18,7 @@ type CreateUserRequest struct {
 	FirstName string `json:"firstName" validate:"required"`
 	LastName  string `json:"lastName" validate:"required"`
 	Mobile    string `json:"phone" validate:"required"`
+	Role      string `json:"role"`
 }
 
 type ExistingUserRequest struct {
@@ -26,4 +27,12 @@ type ExistingUserRequest struct {
 
 type ExistingUserResponse struct {
 	Exists bool `json:"exists"`
+}
+
+type GetUserResponse struct {
+	Email     string `json:"email"`
+	FirstName string `json:"firstName"`
+	LastName  string `json:"lastName"`
+	Phone     string `json:"phone"`
+	Role      string `json:"role"`
 }

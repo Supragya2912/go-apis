@@ -3,7 +3,6 @@ package auth
 import (
 	"context"
 	"errors"
-	"fmt"
 	"go-apis/api/user"
 	"go-apis/helpers"
 	"go-apis/mgo"
@@ -58,7 +57,6 @@ func (d *DefaultMongo) UpdatePassword(data *UpdatePasswordRequest) error {
 	defer cancel()
 
 	var user user.CreateUserRequest
-	fmt.Println("Email:", data.Email)
 	err := mgo.Users.FindOne(ctx, bson.M{"email": data.Email}).Decode(&user)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
